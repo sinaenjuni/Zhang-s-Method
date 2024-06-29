@@ -1,18 +1,29 @@
 import cv2
 import numpy as np
+import numpy.linalg as la
 
 def get_image(path):
     return cv2.imread(path, cv2.IMREAD_COLOR)
 
-def get_image_point(img, ch, cw):
+def get_image_point(img, ch, cw, use_subpix=True):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
     ret, corners = cv2.findChessboardCorners(gray_img, (ch, cw), None)
 
     corners = corners.reshape(-1, 2)
-    corners = cv2.cornerSubPix(gray_img,corners, (ch, cw), (-1,-1), criteria=criteria)
+    if use_subpix:
+        corners = cv2.cornerSubPix(gray_img,corners, (ch, cw), (-1,-1), criteria=criteria)
     return corners
+
+def get_A(src_point, dst_point): 
+    xs, ys = src_point
+    xd, yd = dst_point
+    return np.array([[-xs, -ys, -1, 0, 0, 0, xs*xd, ys*xd, xd],
+                     [0, 0, 0, -xs, -ys, -1, xs*yd, ys*yd, yd]])
+
+def calc_homography(src_point, dst_point):
+    pass
 
 if __name__ == "__main__":
     ch, cw = 9, 7    # checkboard patterns are 9 row and 7 col.
@@ -23,9 +34,13 @@ if __name__ == "__main__":
     img_point0 = get_image_point(img0, ch, cw)
     img_point1 = get_image_point(img1, ch, cw)
 
+    A = np.vstack(list(map(get_A, img_point0, img_point1)))
+    U, D, V = la.svd(A)
+    H = (V[-1,...] / V[-1,-1]).reshape(3,3)
 
-    H, _ = cv2.findHomography(img_point0, img_point1, cv2.RANSAC)
-    print(H)
+    # H, _ = cv2.findHomography(img_point0, img_point1)
+    # print(H)
+
     # img_point = get_image_point(img, ch, cw)
 
     # img = cv2.drawChessboardCorners(img, (ch, cw), img_point, True)
