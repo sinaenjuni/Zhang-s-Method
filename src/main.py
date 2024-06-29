@@ -22,8 +22,12 @@ def get_A(src_point, dst_point):
     return np.array([[-xs, -ys, -1, 0, 0, 0, xs*xd, ys*xd, xd],
                      [0, 0, 0, -xs, -ys, -1, xs*yd, ys*yd, yd]])
 
-def calc_homography(src_point, dst_point):
-    pass
+def compute_homography(src_point, dst_point):
+    assert len(src_point) == len(dst_point) >= 4, "require a minimum four pair-point"
+    A = np.vstack(list(map(get_A, src_point, dst_point)))
+    _, _, V = la.svd(A)
+    H = (V[-1,...] / V[-1,-1]).reshape(3,3)
+    return H
 
 if __name__ == "__main__":
     ch, cw = 9, 7    # checkboard patterns are 9 row and 7 col.
@@ -34,9 +38,7 @@ if __name__ == "__main__":
     img_point0 = get_image_point(img0, ch, cw)
     img_point1 = get_image_point(img1, ch, cw)
 
-    A = np.vstack(list(map(get_A, img_point0, img_point1)))
-    U, D, V = la.svd(A)
-    H = (V[-1,...] / V[-1,-1]).reshape(3,3)
+    H = compute_homography(img_point0, img_point1)
 
     # H, _ = cv2.findHomography(img_point0, img_point1)
     # print(H)
