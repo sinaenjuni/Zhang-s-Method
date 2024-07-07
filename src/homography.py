@@ -11,10 +11,10 @@ def compute_homography(img_point:np.array, obj_point:np.array)->np.array:
         return np.array(A)
     
     assert len(img_point) == len(obj_point) >= 4, "require a minimum four pair-point"
-    A = np.stack(list(map(get_A, img_point, obj_point)))
+    A = np.vstack(list(map(get_A, img_point, obj_point)))
     # A = []
     # for img_point, obj_point in zip(img_point, obj_point):
-        # A += [get_A(img_point, obj_point)]
+    #     A += [get_A(img_point, obj_point)]
     # A = np.vstack(A)
 
     _, _, V = la.svd(A) # find nullspace

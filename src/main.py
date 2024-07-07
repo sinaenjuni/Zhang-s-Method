@@ -1,7 +1,11 @@
 import cv2
 import numpy as np
 import numpy.linalg as la
-import utils
+import files
+from homography import compute_homography
+from intrinsic import compute_intrinsic
+import matplotlib.pyplot as plt
+
 
 def get_image(path):
     return cv2.imread(path, cv2.IMREAD_COLOR)
@@ -24,26 +28,6 @@ def get_image_point(img, col, row, use_subpix=True):
 #     point_homo /= point_homo[-1] # normalize
 #     return point_homo[:2] # change non-homogeneous coordinates
 
-def compute_homography(img_point:np.array, obj_point:np.array)->np.array:
-    def get_A(img_point, obj_point):
-        u, v = img_point
-        X, Y, Z = obj_point
-        Z = 1
-        A = [[X, Y, Z, 0, 0, 0, -u*X, -u*Y, -u*Z],
-             [0, 0, 0, X, Y, Z, -v*X, -v*Y, -v*Z]]
-        return np.array(A)
-    
-    assert len(img_point) == len(obj_point) >= 4, "require a minimum four pair-point"
-    A = np.vstack(list(map(get_A, img_point, obj_point)))
-    # A = []
-    # for img_point, obj_point in zip(img_point, obj_point):
-    #     A += [get_A(img_point, obj_point)]
-    # A = np.vstack(A)
-
-    _, _, V = la.svd(A) # find nullspace
-    H = (V[-1,...] / V[-1,-1]).reshape(3,3) # last row is parameters that we went
-    return H
-
 def apply_homography(H:np.array, point_homo:np.array)->np.array:
     homo_point = np.hstack((point_homo, np.ones((point_homo.shape[0], 1))))
     cvt_homo_point = (H@homo_point.T).T
@@ -57,42 +41,30 @@ def get_world_point(col, row, square_size):
     ret = np.hstack((x, y, z)) * square_size
     return ret.astype(np.float32)
 
-def compute_intrinsic(H:np.array)->np.array:
-    def get_A(H):
-        # [h1 h2 h3]
-        # [h4 h5 h6]
-        # [h7 h8 h9]
-        h1 = H[0, 0]
-        h2 = H[0, 1]
-        h3 = H[0, 2]
-        h4 = H[1, 0]
-        h5 = H[1, 1]
-        h6 = H[1, 2]
-        h7 = H[2, 0]
-        h8 = H[2, 1]
-        h9 = H[2, 2]
-        A = [[h1*h2, h1*h5 + h2*h4, h1*h8 + h2*h7, h4*h5, h4*h8 + h5*h7, h7*h8],
-            [h1*h1 - h2*h2, 2*h1*h4 - 2*h2*h5, 2*h1*h7 - 2*h2*h8, h4*h4 - h5*h5, 2*h4*h7 - 2*h5*h8, h7*h7 - h8*h8]]
-        return np.array(A)
-    A = []
-    # for H in Hs:
-    #     A += [get_A(H)] 
-    # A = np.vstack(A)
-    A = np.vstack(list(map(get_A, H)))
-
-    _, _, V = la.svd(A)
-    a0, a1, a2, a3, a4, a5 = V[-1,...]
-    KtinvKinv = np.array([[a0, a1, a2],
-                          [a1, a3, a4],
-                          [a2, a4, a5]])
-    # min_eigenvalue = np.min(la.eigvals(KtinvKinv))
-    # if min_eigenvalue < 0:
-        # KtinvKinv = KtinvKinv + np.eye(3) * (-min_eigenvalue + 1e-6)
-    pseudoKinv = la.cholesky(KtinvKinv)
-    K = la.inv(pseudoKinv).T
-    K /= K[2,2]
-    Kinv = la.inv(K)
-    return K, Kinv
+def draw_3d_points(points):
+    """
+    주어진 좌표를 사용하여 3D 그래프를 그립니다.
+    
+    Parameters:
+    points (list of tuples): 각 점의 (x, y, z) 좌표를 나타내는 튜플들의 리스트.
+    """
+    # 포인트를 numpy 배열로 변환
+    points = np.array(points)
+    
+    # 3D 그래프 설정
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # 포인트 플로팅
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='r', marker='o')
+    
+    # 축 레이블 설정
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+    
+    # 그래프 표시
+    plt.show()
 
 if __name__ == "__main__":
     np.set_printoptions(suppress=True, linewidth=1000)
@@ -267,13 +239,14 @@ if __name__ == "__main__":
         2417.97338867188, 1428.9556884765, 2418.43334960938, 1540.1915283203,
         2419.30078125, 1654.59033203125])
 
-    image_points = np.array([d1,d2,d3,d4,d5]).reshape(5,63,2)
+    image_points = np.array([d1,d2,d3,d4,d5]).reshape(5,63,2).astype(np.float32)
     world_points = world_point[None, :].repeat(5, 0)
     Hs = np.stack(list(map(compute_homography, image_points, world_points)))
     K, Kinv = compute_intrinsic(Hs)
     print(K)
 
-    for i, H in enumerate(Hs):
+
+    for i, H in enumerate(Hs[:1]):
         print(f"{'='*15} image {i} {'='*15}")
         r1 = Kinv@H[:, 0]
         r2 = Kinv@H[:, 1]
@@ -288,5 +261,4 @@ if __name__ == "__main__":
         print(R)
         print('t')
         print(t)
-
 

@@ -6,8 +6,11 @@ world_points = world_point[None, :].repeat(len(img_points), 0)
 # img_points.shape (4, 63, 2)
 # world_points.shape (4, 63, 3)
 # 형태여야 한다.
-rms, intrinsics, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(world_points, img_points, imgs[0].shape[0:2], None, None)
+rms, intrinsics, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(world_points, image_points, (100,100), None, None)
 print(intrinsics)
+print(cv2.Rodrigues(rvecs[0])[0])
+print(tvecs[3])
+
 
 # [[3343.4711665     0.         1718.30753328]
 #  [   0.         3338.52033014 1259.29538391]
