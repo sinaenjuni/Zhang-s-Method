@@ -25,9 +25,9 @@ class Visualizer:
         self.ax = make_3d_axis(1, unit="m")
         # self.ax = make_3d_axis(1, 111, unit="m")
         # ax = fig.add_subplot(projection='3d')
-        self.ax.set_xlim(0,500)
-        self.ax.set_ylim(0,500)
-        self.ax.set_zlim(-500,0)
+        self.ax.set_xlim(-500,500)
+        self.ax.set_ylim(-500,500)
+        self.ax.set_zlim(-500,500)
         self.ax.view_init(elev=-143, azim=-43)
 
         self.world_grid = pc.make_world_grid(
