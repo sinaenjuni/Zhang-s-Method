@@ -245,8 +245,9 @@ if __name__ == "__main__":
     K, Kinv = compute_intrinsic(Hs)
     print(K)
 
-
-    for i, H in enumerate(Hs[:1]):
+    Rs = []
+    ts = []
+    for i, H in enumerate(Hs):
         print(f"{'='*15} image {i} {'='*15}")
         r1 = Kinv@H[:, 0]
         r2 = Kinv@H[:, 1]
@@ -261,4 +262,13 @@ if __name__ == "__main__":
         print(R)
         print('t')
         print(t)
+        Rs += [R]
+        ts += [t]
+
+    print()
+    from visualization import Visualizer
+    vis=Visualizer(K)
+    for i, (R, t) in enumerate(zip(Rs, ts)):
+        vis.add_camera(R, t, i)
+    vis.show()
 
