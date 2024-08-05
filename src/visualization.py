@@ -5,7 +5,7 @@ import pytransform3d.transformations as pt
 from pytransform3d.plot_utils import make_3d_axis
 
 class Visualizer:
-    def __init__(self, K, image_size=(4032, 2268), cb_size=(7,9), square_size=20):
+    def __init__(self, K, image_size, cb_size=(7,9), square_size=20):
         # K = np.array([[3362.36309908,   11.94861188, 1921.85838599],
         #                 [   0.,         3363.78896905,  984.52116144],
         #                 [  -0.,            0.,            1.        ]])
@@ -16,7 +16,7 @@ class Visualizer:
         
         self.K = K
         self.virtual_image_distance = 100
-        self.sensor_size = (K[0,2], K[1,2])
+        self.sensor_size = image_size
         self.image_size = image_size
         self.col, self.row = cb_size
         self.square_size = square_size
@@ -29,6 +29,7 @@ class Visualizer:
         self.ax.set_ylim(-500,500)
         self.ax.set_zlim(-500,500)
         self.ax.view_init(elev=-143, azim=-43)
+
 
         self.world_grid = pc.make_world_grid(
             n_lines=self.col+1, n_points_per_line=100, 
@@ -48,11 +49,11 @@ class Visualizer:
         cam2world[:3, -1] = -(R.T@t)
         return cam2world
 
-    def add_camera(self, R, t, camera_name=None):
+    def add_camera(self, R, t, camera_name=None, color='k'):
         cam2world = self.convert_cam2world(R, t)
         pt.plot_transform(self.ax, A2B=cam2world, s=50, name=camera_name if camera_name is not None else None)
         pc.plot_camera(self.ax, cam2world=cam2world, M=self.K, sensor_size=self.sensor_size,
-                        virtual_image_distance=self.virtual_image_distance)
+                        virtual_image_distance=self.virtual_image_distance, c=color)
         # self.add_imageview(cam2world)
         
     def add_imageview(self, cam2world):
@@ -76,7 +77,7 @@ if __name__ == "__main__":
                 [ 0.04577289, 0.82624237, 0.56145204,],
                 [-0.04127338, -0.55999698, 0.82746594]])
     t = np.array([-68.89861393, -57.46334559, 428.33907405])
-    vis=Visualizer(K)
+    vis=Visualizer(K, (4032, 2268))
     vis.add_camera(R, t)
     vis.show()
 
